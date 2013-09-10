@@ -2,7 +2,11 @@ project(test-cstl)
 cmake_minimum_required(VERSION 2.8)
 aux_source_directory(. SRC_LIST)
 
+add_definitions( -std=c99 -g )
+#message(STATUS "${DEFINITIONS}")
+
 add_executable(clist ./test/clist.c)
+add_executable(vector test_vec.c vector.c vector.h)
 if(UNIX)
     if(APPLE)
         include_directories(${INCLUDE_DIRECTORIES}
