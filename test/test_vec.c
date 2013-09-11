@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "vector.h"
+#include "../vector.h"
 #include <CUnit/CUnit.h>
 #include <CUnit/Basic.h>
 
