@@ -8,6 +8,7 @@ add_definitions( -std=c99 -g )
 add_executable(clist ./test/clist.c)
 add_executable(testvec test/test_vec.c vector.c vector.h)
 add_executable(testhash test/test_hash.c hashmap.c hashmap.h vector.c vector.h)
+add_executable(testlist test/test_list.c list.c list.h)
 if(UNIX)
     if(APPLE)
         include_directories(${INCLUDE_DIRECTORIES}
