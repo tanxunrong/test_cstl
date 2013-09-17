@@ -10,14 +10,14 @@ struct l_item {
     int len;
     struct l_item *prev,*next;
 };
-typedef struct l_item LItem;
-struct _list {
+typedef struct l_item * litem_ptr;
+struct list {
     size_t size;
     void (*destructor) (void*);
-    LItem *start,*end;
+    litem_ptr start,end;
 };
 
-typedef struct _list * list_ptr;
+typedef struct list * list_ptr;
 
 list_ptr create_list();
 void list_push(list_ptr dl,void *data,size_t len);

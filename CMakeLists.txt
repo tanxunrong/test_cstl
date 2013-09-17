@@ -10,6 +10,7 @@ add_executable(testvec test/test_vec.c vector.c vector.h)
 add_executable(testhash test/test_hash.c hashmap.c hashmap.h vector.c vector.h)
 add_executable(testlist test/test_list.c list.c list.h)
 add_executable(testrb test/test_rb.c rbtree.c rbtree.h)
+add_executable(testqueue test/test_queue.c queue.c queue.h)
 if(UNIX)
     if(APPLE)
         include_directories(${INCLUDE_DIRECTORIES}
