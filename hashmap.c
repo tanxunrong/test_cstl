@@ -90,7 +90,7 @@ void hashmap_remove(hashmap_ptr hm, char *key)
 
 void destroy_hashmap(hashmap_ptr hm)
 {
-    for(int i;i<hm->bucket_num;i++)
+    for(int i=0;i<hm->bucket_num;i++)
     {
         HItem *cur = hm->bucket[i];
         HItem *last = NULL;
