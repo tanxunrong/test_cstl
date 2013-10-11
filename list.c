@@ -4,7 +4,7 @@
 list_ptr create_list()
 {
     list_ptr dl = (list_ptr)malloc(sizeof(struct list));
-    memset(list_ptr,0,sizeof(struct list));
+    memset(dl,0,sizeof(struct list));
     dl->destructor=free;
     dl->start = NULL;
     dl->end = NULL;
