@@ -19,12 +19,12 @@ int main(int argc,char *argv[])
 	msg->uid = atoi(argv[3]);
 	if ( argc > 4 )
 	{
-		msg->params = (char**)malloc(sizeof(char*) * (argc-3));
-		memset(msg->params,0,sizeof(char*) * (argc-3));
-		for(int i=4;i<=argc;i++)
+		size_t plen = sizeof(char*) * (argc-4);
+		msg->params = (char**)malloc(plen);
+		memset(msg->params,0,plen);
+		for(int i=4;i<argc;i++)
 		{
-			char *addr = (*(msg->params))+i-4;
-			memcpy(addr,&argv[i],sizeof(char*));
+			 memcpy((msg->params)+i-4,argv[i],sizeof(char*));
 		}
 	}
 
