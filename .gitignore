@@ -19,5 +19,4 @@
 # Cmake user file
 CMakeLists.txt.user
 
-# protobuf dir
-protobuf/*
+
