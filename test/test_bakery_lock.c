@@ -1,12 +1,16 @@
 
 #include "../bakery_lock.h"
 
+static int sum = 0;
 static txr_lock_t *lock;
 void *worker(void *param)
 {
 	int i = *((int*)param);
 	acquire(lock,i);
+	sum++;
 	sleep(1);
+	assert(sum <= 1);
+	sum--;
 	release(lock,i);
 	free(param);
 	return NULL;

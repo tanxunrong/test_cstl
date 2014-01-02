@@ -5,14 +5,14 @@ static int label_higher(txr_lock_t *lock,int idx)
 {
 	for (int k=0;k<T_N;k++)
 	{
-		if (k == idx)
+		if (k == idx || lock->flag[k] == 0)
 			continue;
 		//(label[k],k) << (lable[idx],idx)
 		// <=>
 		//label[k] < label[idx] || (label[k] == label[idx] && k < idx)
 		// <=>
-		if (lock->label[k] > lock->label[idx] && ( lock->label[k] != lock->label[idx] || 
-					k >= idx))
+		if (lock->label[k] < lock->label[idx] 
+			|| ( lock->label[k] == lock->label[idx] && k < idx))
 		{
 			return 1;
 		}
