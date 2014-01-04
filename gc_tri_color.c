@@ -198,6 +198,11 @@ void gc(TVm *vm)
 	{
 		if (gray->type == VAL_PAIR)
 		{
+			//http://wiki.luajit.org/New-Garbage-Collector#Tri-Color-Incremental-Mark-&-Sweep
+			//TODO
+			// Objects which have no references to child objects 
+			// can immediately be turned from white to black and don't
+			//  need to go through the gray stack
 			if (gray->value.left->color == COLOR_WHITE)
 			{
 				moveToGray(vm,gray->value.left);
@@ -221,10 +226,15 @@ void gc(TVm *vm)
 			//pair p.left = int a
 			//pair p.left = pair p
 
+
 			printf("gc round stop\n\n");
 			return;
 		}
-	}	
+	}
+	//Stacks should always be kept gray 
+	//and re-traversed just before the final sweep phase. 
+	//This avoids a write barrier for stores to stack slots,
+	//which are the most common kind of stores.	
 	release(vm);
 	printf("gc round end\n\n");
 }
