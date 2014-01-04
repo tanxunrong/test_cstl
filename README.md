@@ -1,4 +1,4 @@
 test_cstl
 =========
 
-libcstl test &amp; study , have little time
+for self study
