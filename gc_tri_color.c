@@ -193,6 +193,7 @@ void gc(TVm *vm)
 	}
 	TVal *gray = vm->gray;
 
+	int steps = 0;
 	while(gray)
 	{
 		if (gray->type == VAL_PAIR)
@@ -208,6 +209,21 @@ void gc(TVm *vm)
 		}
 		moveToBlack(vm,gray);
 		gray=vm->gray;
+		if (++steps > 30)
+		{
+			//TODO fix write barrier
+			//while black value hold reference of white value
+			//either
+			//push white to gray list
+			//or
+			//move black to gray list
+			//pair p.left = pair p.right
+			//pair p.left = int a
+			//pair p.left = pair p
+
+			printf("gc round stop\n\n");
+			return;
+		}
 	}	
 	release(vm);
 	printf("gc round end\n\n");
@@ -334,6 +350,20 @@ void test3() {
 
   gc(vm);
   assert(vm->used == 7);
+}
+
+void write_barrier() {
+  printf("Test : write_barrier test\n");
+  TVm* vm = newVM();
+  pushInt(vm, 1);
+  pushInt(vm, 2);
+  pushPair(vm);
+  pushInt(vm, 3);
+  pushInt(vm, 4);
+  pushPair(vm);
+  pushPair(vm);
+
+  gc(vm);
 }
 
 void test4() {
