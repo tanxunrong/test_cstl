@@ -31,17 +31,18 @@ typedef enum {
 }ValType;
 
 typedef enum {
-	WHITE,
-	BLACK,
-	GRAY
+	COLOR_WHITE,
+	COLOR_GRAY,
+	COLOR_BLACK
 }ValColor;
 
 typedef struct _tVal TVal;
 struct _tVal {
 	TVal *next;
-	TVal *prev;
-	ValType type;
+	TVal *prev;	
 	ValColor color;
+
+	ValType type;
 	union {
 		int data;
 		struct {
@@ -52,19 +53,19 @@ struct _tVal {
 };
 
 typedef struct _tVm TVm;
-
 struct _tVm {
 	//tri-color three sets
 	TVal *white;
 	int n_white;
+
 	TVal *gray;
 	int n_gray;
+
 	TVal *black;
 	int n_black;
 
 	int trigger;
 	size_t used;
-	int top;
 };
 
 TVm *newVM();
@@ -85,7 +86,6 @@ TVm *newVM()
 	TVm *vm = (TVm *)malloc(sizeof(TVm));
 	assert(vm);
 	memset(vm,0,sizeof(TVm));
-	vm->top = 0;
 	vm->used = 0;
 	vm->trigger = 0;
 
@@ -100,12 +100,13 @@ TVm *newVM()
 	return vm;
 };
 
+//push into gray list
 void pushVal(TVm *vm,TVal *val)
 {
 	TVal *gray = vm->gray;
 	vm->gray = val;
 	val->prev = NULL;
-	val->color = GRAY;
+	val->color = COLOR_GRAY;
 	vm->n_gray++;
 	val->next = gray;
 
@@ -114,10 +115,12 @@ void pushVal(TVm *vm,TVal *val)
 	gray->prev = val;
 }
 
+//pop from gray,push into white
 TVal *popVal(TVm *vm)
 {
 	assert(vm->gray);
 
+	//step 1
 	TVal *gray = vm->gray;
 	vm->gray = gray->next;
 	if (gray->next)
@@ -126,6 +129,7 @@ TVal *popVal(TVm *vm)
 	}
 	vm->n_gray--;
 
+	//step 2
 	TVal *white = vm->white;
 	gray->next = white;
 	if (white)
@@ -133,6 +137,7 @@ TVal *popVal(TVm *vm)
 		white->prev = gray;
 	}
 	gray->prev=NULL;
+	gray->color = COLOR_WHITE;
 	vm->white = gray;
 	vm->n_white++;
 
@@ -141,16 +146,22 @@ TVal *popVal(TVm *vm)
 
 TVal *newVal(TVm *vm,ValType type)
 {
-	if (vm->trigger >= 100)
+#define GC_TRIGGER	100
+	if (vm->trigger >= GC_TRIGGER)
 	{
 		gc(vm);
 		vm->trigger = 0;
 	}
+	else
+	{
+		vm->trigger++;
+	}
+
 	TVal *val = (TVal*)malloc(sizeof(TVal));
 	assert(val);
 	memset(val,0,sizeof(TVal));
 	val->type = type;
-	vm->used ++;
+	vm->used++;
 
 	return val;
 }
@@ -173,35 +184,39 @@ TVal *pushPair(TVm *vm)
 
 void gc(TVm *vm)
 {
+	printf("gc round start\n");
 	if (vm->gray == NULL)
 	{
 		release(vm);
+		printf("gc round end\n\n");
 		return;
 	}
 	TVal *gray = vm->gray;
-#define GRAY_PICK 5
-	for(int i=0;i<GRAY_PICK;i++)
-	{		
+
+	while(gray)
+	{
 		if (gray->type == VAL_PAIR)
 		{
-			moveToGray(vm,gray->value.left);
-			moveToGray(vm,gray->value.right);
+			if (gray->value.left->color == COLOR_WHITE)
+			{
+				moveToGray(vm,gray->value.left);
+			}
+			if (gray->value.right->color == COLOR_WHITE)
+			{
+				moveToGray(vm,gray->value.right);
+			}
 		}
-		moveToBlack(vm,gray);			
-		if(vm->gray == NULL)
-		{
-			release(vm);
-			return;
-		}
+		moveToBlack(vm,gray);
 		gray=vm->gray;
-	}
-	printf("gc round\n");
+	}	
+	release(vm);
+	printf("gc round end\n\n");
 }
 
 void moveToBlack(TVm *vm,TVal *val)
 {
 	assert(val);
-	assert(val->color == GRAY);
+	assert(val->color == COLOR_GRAY);
 	if (val->prev)
 	{
 		val->prev->next = val->next;		
@@ -231,7 +246,7 @@ void moveToBlack(TVm *vm,TVal *val)
 void moveToGray(TVm *vm,TVal *val)
 {
 
-	assert(val->color == WHITE);
+	assert(val->color == COLOR_WHITE);
 	if (val->prev)
 	{
 		val->prev->next = val->next;		
@@ -253,15 +268,16 @@ void moveToGray(TVm *vm,TVal *val)
 	{
 		gray->prev = val;
 	}
+	val->color = COLOR_GRAY;
 	vm->gray = val;
 	vm->n_gray++;
 }
 
 void release(TVm *vm)
 {
-	TVal *val = vm->white;
-	printf("free white list %d\n",vm->n_white);
 
+	printf("free white list %d\n",vm->n_white);
+	TVal *val = vm->white;
 	while(val)
 	{
 		vm->white = val->next;
@@ -278,6 +294,8 @@ void release(TVm *vm)
 			break;
 		}
 	}
+	vm->gray = vm->black;
+	vm->black = NULL;
 	printf("left value count %ld\n", vm->used);
 }
 
@@ -354,9 +372,9 @@ int main(int argc, const char * argv[]) {
   test1();
   test2();
   test3();
-  // test4();
+  test4();
 
-  // perfTest();
+  perfTest();
 
   return 0;
 }
