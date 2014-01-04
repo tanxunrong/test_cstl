@@ -23,3 +23,5 @@ CMakeLists.txt.user
 proto/message*
 proto/pack*
 proto/test_proto
+
+*.dSYM/
