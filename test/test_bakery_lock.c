@@ -1,5 +1,5 @@
 
-#include "../bakery_lock.h"
+#include "bakery_lock.h"
 
 static int sum = 0;
 static txr_lock_t *lock;

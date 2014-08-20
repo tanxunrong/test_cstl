@@ -1,5 +1,5 @@
 
-#include "../filter_lock.h"
+#include "filter_lock.h"
 #include <string.h>
 #include <unistd.h>
 

@@ -2,27 +2,19 @@ project(test-cstl)
 cmake_minimum_required(VERSION 2.8)
 aux_source_directory(. SRC_LIST)
 
-add_definitions( -std=c99 -g )
-#message(STATUS "${DEFINITIONS}")
+add_definitions( -Wall -std=c99 -g )
 
-add_executable(clist ./test/clist.c)
-add_executable(testvec test/test_vec.c vector.c vector.h)
-add_executable(testhash test/test_hash.c hashmap.c hashmap.h vector.c vector.h)
-add_executable(testlist test/test_list.c list.c list.h)
-add_executable(testrb test/test_rb.c rbtree.c rbtree.h)
-add_executable(testqueue test/test_queue.c queue.c queue.h)
-if(UNIX)
-    if(APPLE)
-        include_directories(${INCLUDE_DIRECTORIES}
-                                /usr/include
-                                /usr/local/include)
-        link_directories(${LINK_DIRECTORIES} /lib/x86_64-linux-gnu /usr/local/lib)
-    else()
-        include_directories(${INCLUDE_DIRECTORIES}
-                                /usr/include
-                                /usr/local/include)
-        link_directories(${LINK_DIRECTORIES} /lib/x86_64-linux-gnu /usr/local/lib)
-        target_link_libraries(clist cstl)
-        target_link_libraries(testvec cunit)
-    endif()
-endif()
+include_directories( container/ lock/ )
+
+add_executable(testvec test/test_vector.c container/vector.c container/vector.h)
+add_executable(testhash test/test_hashmap.c container/hashmap.c container/hashmap.h container/vector.c container/vector.h)
+add_executable(testlist test/test_list.c container/list.c container/list.h)
+add_executable(testbklock test/test_bakery_lock.c lock/bakery_lock.c lock/bakery_lock.h)
+add_executable(testflblock test/test_filter_lock.c lock/filter_lock.c lock/filter_lock.h)
+
+target_link_libraries(testbklock pthread)
+target_link_libraries(testflblock pthread)
+
+
+add_executable(mark_sweep gc/gc_mark_sweep.c)
+add_executable(tri_color gc/gc_tri_color.c)
