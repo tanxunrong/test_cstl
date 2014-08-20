@@ -4,7 +4,7 @@ aux_source_directory(. SRC_LIST)
 
 add_definitions( -Wall -std=gnu99 -g )
 
-include_directories( container/ lock/ /home/tanxr/local/include )
+include_directories( container/ lock/ /home/tanxr/local/include /home/tanxr/local/include/glib-2.0)
 
 add_executable(testvec test/test_vector.c container/vector.c container/vector.h)
 add_executable(testhash test/test_hashmap.c container/hashmap.c container/hashmap.h container/vector.c container/vector.h)
@@ -22,4 +22,4 @@ add_executable(tri_color gc/gc_tri_color.c)
 link_directories(/home/tanxr/local/lib)
 
 add_executable(testuv event/test_uv.c )
-target_link_libraries(testuv uv pthread)
+target_link_libraries(testuv uv.a pthread glib-2.0)
