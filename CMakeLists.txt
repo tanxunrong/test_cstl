@@ -2,9 +2,9 @@ project(test-cstl)
 cmake_minimum_required(VERSION 2.8)
 aux_source_directory(. SRC_LIST)
 
-add_definitions( -Wall -std=c99 -g )
+add_definitions( -Wall -std=gnu99 -g )
 
-include_directories( container/ lock/ )
+include_directories( container/ lock/ /home/tanxr/local/include )
 
 add_executable(testvec test/test_vector.c container/vector.c container/vector.h)
 add_executable(testhash test/test_hashmap.c container/hashmap.c container/hashmap.h container/vector.c container/vector.h)
@@ -18,3 +18,8 @@ target_link_libraries(testflblock pthread)
 
 add_executable(mark_sweep gc/gc_mark_sweep.c)
 add_executable(tri_color gc/gc_tri_color.c)
+
+link_directories(/home/tanxr/local/lib)
+
+add_executable(testuv event/test_uv.c )
+target_link_libraries(testuv uv pthread)
