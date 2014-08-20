@@ -23,7 +23,11 @@ struct leela_sock_server {
 
 static struct leela_sock_server *GS = NULL;
 
-void leela_on_read(uv_stream_t)
+void leela_on_read(uv_stream_t *st,ssize_t n,uv_buf_t *buf)
+{
+
+}
+
 void leela_on_conn(uv_stream_t *st,int status)
 {
     if (status == -1)
