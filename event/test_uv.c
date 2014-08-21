@@ -4,12 +4,20 @@
 #include <glib.h>
 #include <uv.h>
 
+#define LEELA_ERR(code) \
+    do { \
+    fprintf(stderr,"error name %s detail %s\n",uv_err_name((code)),uv_strerror((code))); \
+    exit(-1);\
+    }while(0);
+
 struct leela_conn {
     int id;
     int fd;
     struct sockaddr_in addr;
     uv_tcp_t userv;
     uv_buf_t buff;
+    int read_len;
+    int write_len;
 };
 
 struct leela_sock_server {
@@ -17,62 +25,77 @@ struct leela_sock_server {
     int num;
     uint session_id;
     GMutex mutex;
-    GQueue *conn_list;
+    GHashTable *all_conn;
     uv_tcp_t userv;
 };
 
 static struct leela_sock_server *GS = NULL;
 
+typedef struct {
+  uv_write_t req;
+  uv_buf_t buf;
+} write_req_t;
+
 void leela_on_alloc(uv_handle_t* handle,size_t suggested_size,uv_buf_t* buf)
 {
     if (handle->type == UV_TCP)
     {
-        buf = g_malloc0(sizeof(*buf));
-        buf->base = g_malloc0(suggested_size * 2);
-        buf->len = suggested_size * 2;
+        *buf = uv_buf_init(g_malloc0(suggested_size),suggested_size);
     }
 }
 
-void leela_on_read(uv_stream_t *st,ssize_t n,uv_buf_t *buf)
+void leela_on_write(uv_write_t *req,int status)
 {
-    if (n > 0)
+    write_req_t *weq;
+    weq = (write_req_t *)req;
+    if (status)
     {
-        printf("client send : %s\n",buf->base);
+        LEELA_ERR(status);
     }
-    else
-    {
-        printf("reading error %s \n",uv_err_name(n));
-        uv_close(st,NULL);
-    }
-//    if (buf)
-//    {
-//        g_free(buf->base);
-//        g_free(buf);
-//    }
+    g_assert(weq->req.type == UV_WRITE);
+    fprintf(stderr,"conn write %ld\n",weq->buf.len);
 
+    g_free(weq->buf.base);
+    g_free(weq);
 }
 
-void leela_on_conn(uv_stream_t *st,int status)
+void leela_on_read(uv_stream_t *client,ssize_t nread,uv_buf_t *buf)
+{
+    if (nread == UV_EOF)
+    {
+        uv_close((uv_handle_t *)client,NULL);
+        fprintf(stderr,"close conn \n");
+    }
+    else if (nread > 0)
+    {
+        fprintf(stderr,"conn read %ld bytes\n",nread);
+        write_req_t *weq = g_malloc0(sizeof(*weq));
+        weq->buf = uv_buf_init(buf->base,nread);
+        uv_write(&weq->req,client,&weq->buf,1,leela_on_write);
+    }
+}
+
+void leela_on_conn(uv_stream_t *server,int status)
 {
     if (status == -1)
     {
-        return ;
+        LEELA_ERR(status);
     }
 
+    //init conn
     struct leela_conn *conn = g_malloc0(sizeof(*conn));
 
     g_mutex_lock(&GS->mutex);
-
-    g_queue_push_tail(GS->conn_list,conn);
-    conn->id = GS->session_id + 100;
-    GS->session_id = (uint)(GS->session_id + 100);
+    conn->id = GS->session_id + 10;
+    g_hash_table_insert(GS->all_conn,&conn->id,conn);
+    GS->session_id = (uint)(GS->session_id + 10);
     GS->num++;
-
     g_mutex_unlock(&GS->mutex);
 
     uv_tcp_init(uv_default_loop(),&conn->userv);
 
-    if (uv_accept(st,(struct uv_stream_t *)&conn->userv) == 0)
+    //accept
+    if (uv_accept(server,(struct uv_stream_t *)&conn->userv) == 0)
     {
         uv_read_start((struct uv_stream_t *)&conn->userv,leela_on_alloc,leela_on_read);
     }
@@ -80,8 +103,10 @@ void leela_on_conn(uv_stream_t *st,int status)
     {
         uv_close(&conn->userv,NULL);
         g_free(conn->buff.base);
-        ///@todo free GS
-        g_free(conn);
+        g_mutex_lock(&GS->mutex);
+        g_hash_table_remove(GS->all_conn,&conn->id);
+        GS->num--;
+        g_mutex_unlock(&GS->mutex);
     }
 }
 
@@ -89,13 +114,15 @@ int main(int argc,char *argv[])
 {
     uv_loop_t *loop = uv_default_loop();
 
+    //init server
     struct leela_sock_server *server = g_malloc0(sizeof(*server));
-    server->conn_list = g_queue_new();
+    server->all_conn = g_hash_table_new(g_int_hash,g_int_equal);
     g_mutex_init(&server->mutex);
     uv_tcp_init(loop,&server->userv);
     server->session_id = 10000;
     GS = server;
 
+    //bind
     struct sockaddr_in bind_addr ;
     int ret = 0;
     if ((ret = uv_ip4_addr("0.0.0.0",7890,&bind_addr)))
@@ -104,15 +131,17 @@ int main(int argc,char *argv[])
         exit(-1);
     }
 
+    //uv_tcp init
     uv_tcp_bind(&server->userv,(struct sockaddr *)&bind_addr,0);
 
+    //listen
     ret = uv_listen((uv_stream_t *)&server->userv,1<<8,leela_on_conn);
     if (ret)
     {
-        printf("listen err %s\n",uv_err_name(ret));
-        exit(-1);
+        LEELA_ERR(ret)
     }
 
+    //RUN
     uv_run(loop,UV_RUN_DEFAULT);
     return 0;
 }
