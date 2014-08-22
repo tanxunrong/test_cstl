@@ -208,19 +208,24 @@ void leela_on_conn(uv_stream_t *door,int status)
     }
 }
 
+void leela_server_start(struct leela_sock_server *server,uv_connection_cb cb)
+{
+    int ret;
+    //listen
+    ret = uv_listen((uv_stream_t *)&server->door,128,cb);
+    if (ret)
+        LEELA_SOCK_ERR(ret);
+
+    uv_run(&server->loop,UV_RUN_DEFAULT);
+}
+
 int main(int argc,char *argv[])
 {
 
     //init server
     struct leela_sock_server *server = leela_server_new(7890,8890);
 
-    int ret;
-    //listen
-    ret = uv_listen((uv_stream_t *)&server->door,128,leela_on_conn);
-    if (ret)
-        LEELA_SOCK_ERR(ret);
-
-    uv_run(&server->loop,UV_RUN_DEFAULT);
+    leela_server_start(server,leela_on_conn);
 
     return 0;
 }
