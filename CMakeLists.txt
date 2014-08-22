@@ -21,5 +21,5 @@ add_executable(tri_color gc/gc_tri_color.c)
 
 link_directories(/home/tanxr/local/lib)
 
-add_executable(testuv event/test_uv.c )
+add_executable(testuv event/test_uv.c event/test_uv.h)
 target_link_libraries(testuv uv.a pthread glib-2.0)
