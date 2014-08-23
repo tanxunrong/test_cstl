@@ -2,6 +2,18 @@
 #include "test_uv.h"
 
 /*****************
+ * conn_addr
+ * ****************/
+struct leela_conn_addr * leela_caddr_new(struct leela_sock_server *server)
+{
+
+    struct leela_conn_addr *find_addr = g_malloc0(sizeof(*find_addr));
+    find_addr->type = UTCPT_IN_SERVER;
+    find_addr->u.server = server;
+    return find_addr;
+}
+
+/*****************
  * conn
  *****************/
 struct leela_conn *leela_conn_new(struct leela_sock_server *server)
@@ -56,15 +68,8 @@ struct leela_sock_server * leela_server_new(int pub_port,int pri_port)
     uv_tcp_init(&server->loop,&server->door);
     uv_tcp_init(&server->loop,&server->bkdoor);
 
-    struct leela_conn_addr *find_addr_1 = g_malloc0(sizeof(*find_addr_1));
-    find_addr_1->type = UTCPT_IN_SERVER;
-    find_addr_1->u.server = server;
-    server->door.data = find_addr_1;
-
-    struct leela_conn_addr *find_addr_2 = g_malloc0(sizeof(*find_addr_2));
-    find_addr_2->type = UTCPT_IN_SERVER;
-    find_addr_2->u.server = server;
-    server->bkdoor.data = find_addr_2;
+    server->door.data = leela_caddr_new(server);
+    server->bkdoor.data = leela_caddr_new(server);
 
     int ret;
     // public addr
@@ -156,6 +161,32 @@ void leela_server_start(struct leela_sock_server *server,uv_connection_cb cb)
     uv_run(&server->loop,UV_RUN_DEFAULT);
 }
 
+guint leela_conn_allclose(gpointer key,gpointer val,gpointer userdata)
+{
+    struct leela_sock_server *server = userdata;
+    struct leela_conn *conn = val;
+    uv_close(&conn->guest,NULL);
+    fprintf(stderr,"conn %d closed by server\n",conn->conn_id);
+    g_free(conn);
+
+}
+
+void leela_server_close(struct leela_sock_server *server)
+{
+    g_mutex_lock(&server->mutex);
+
+    g_hash_table_foreach_remove(server->all_conn,leela_conn_allclose,server);
+    server->num = 0;
+    g_free(server->all_conn);
+    g_mutex_unlock(&server->mutex);
+
+    uv_close(&server->door,NULL);
+    uv_close(&server->bkdoor,NULL);
+    uv_loop_close(&server->loop);
+
+    g_free(server);
+}
+
 int main(int argc,char *argv[])
 {
 
@@ -163,6 +194,8 @@ int main(int argc,char *argv[])
     struct leela_sock_server *server = leela_server_new(7890,8890);
 
     leela_server_start(server,leela_on_conn);
+
+    leela_server_close(server);
 
     return 0;
 }
