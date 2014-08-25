@@ -14,6 +14,7 @@
 #define LEELA_ID_STEP 10
 #define LEELA_FIND_CONN(uvtcpt) (((struct leela_conn_addr *)(uvtcpt)->data)->u.conn)
 #define LEELA_FIND_SERVER(uvtcpt) (((struct leela_conn_addr *)(uvtcpt)->data)->u.server)
+#define LEELA_BEAT_DURATION (60 * 1000)
 
 struct leela_conn;
 struct leela_sock_server;
@@ -66,3 +67,4 @@ void leela_on_alloc(uv_handle_t* handle,size_t suggested_size,uv_buf_t* buf);
 void leela_on_read(uv_stream_t *client,ssize_t nread,uv_buf_t *buf);
 
 void leela_server_start(struct leela_sock_server *server,uv_connection_cb cb);
+void leela_conn_beat(uv_timer_t *timer,int status);

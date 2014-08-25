@@ -4,12 +4,21 @@
 /*****************
  * conn_addr
  * ****************/
-struct leela_conn_addr * leela_caddr_new(struct leela_sock_server *server)
+struct leela_conn_addr * leela_caddr_server(struct leela_sock_server *server)
 {
 
     struct leela_conn_addr *find_addr = g_malloc0(sizeof(*find_addr));
     find_addr->type = UTCPT_IN_SERVER;
     find_addr->u.server = server;
+    return find_addr;
+}
+
+struct leela_conn_addr * leela_caddr_conn(struct leela_conn *conn)
+{
+
+    struct leela_conn_addr *find_addr = g_malloc0(sizeof(*find_addr));
+    find_addr->type = UTCPT_IN_CONN;
+    find_addr->u.conn = conn;
     return find_addr;
 }
 
@@ -21,6 +30,7 @@ struct leela_conn *leela_conn_new(struct leela_sock_server *server)
     struct leela_conn *conn = g_malloc0(sizeof(*conn));
 
     g_mutex_lock(&server->mutex);
+
     if (server->close)
     {
         g_mutex_unlock(&server->mutex);
@@ -33,21 +43,25 @@ struct leela_conn *leela_conn_new(struct leela_sock_server *server)
     server->num++;
 
     g_mutex_unlock(&server->mutex);
-    conn->server = server;
-    uv_tcp_init(&server->loop,&conn->guest);
 
-    struct leela_conn_addr *find_addr = g_malloc0(sizeof(*find_addr));
-    find_addr->type = UTCPT_IN_CONN;
-    find_addr->u.conn = conn;
-    conn->guest.data = find_addr;
+    uv_tcp_init(&server->loop,&conn->guest);
+    uv_timer_init(&server->loop,&conn->beat);
+    conn->last_beat = uv_now(&server->loop);
+
+    conn->server = server;
+    conn->guest.data = leela_caddr_conn(conn);
+    conn->beat.data = leela_caddr_conn(conn);
 
     fprintf(stderr,"conn id %d create \n",conn->conn_id);
+
+    uv_timer_start(&conn->beat,leela_conn_beat,LEELA_BEAT_DURATION,LEELA_BEAT_DURATION);
     return conn;
 }
 
 void leela_conn_close(struct leela_sock_server *server, struct leela_conn *conn)
 {
     uv_close((uv_handle_t *)&conn->guest,NULL);
+    uv_close((uv_handle_t *)&conn->beat,NULL);
 
     g_mutex_lock(&server->mutex);
     g_hash_table_remove(server->all_conn,&conn->conn_id);
@@ -56,7 +70,27 @@ void leela_conn_close(struct leela_sock_server *server, struct leela_conn *conn)
 
     fprintf(stderr,"conn id %d close \n",conn->conn_id);
     g_free(conn->guest.data);
+    g_free(conn->beat.data);
     g_free(conn);
+}
+
+void leela_conn_beat(uv_timer_t *timer,int status)
+{
+    if (status != 0)
+    {
+        LEELA_SOCK_ERR(status);
+    }
+
+    struct leela_conn *conn = LEELA_FIND_CONN(timer);
+    struct leela_sock_server *server = conn->server;
+    uint64_t last_beat = conn->last_beat;
+    conn->last_beat = uv_now(&server->loop);
+
+    //need stop
+    if (conn->last_beat - last_beat >= LEELA_BEAT_DURATION)
+    {
+        leela_conn_close(server,conn);
+    }
 }
 
 /***************
@@ -73,8 +107,8 @@ struct leela_sock_server * leela_server_new(int pub_port,int pri_port)
     uv_tcp_init(&server->loop,&server->door);
     uv_tcp_init(&server->loop,&server->bkdoor);
 
-    server->door.data = leela_caddr_new(server);
-    server->bkdoor.data = leela_caddr_new(server);
+    server->door.data = leela_caddr_server(server);
+    server->bkdoor.data = leela_caddr_server(server);
 
     server->close = 0;
 
@@ -103,6 +137,9 @@ struct leela_sock_server * leela_server_new(int pub_port,int pri_port)
     return server;
 }
 
+/**********************
+ * alloc buffer
+ *********************/
 void leela_on_alloc(uv_handle_t* handle,size_t suggested_size,uv_buf_t* buf)
 {
     if (handle->type == UV_TCP)
@@ -112,20 +149,22 @@ void leela_on_alloc(uv_handle_t* handle,size_t suggested_size,uv_buf_t* buf)
     }
 }
 
+/*************
+ * read from client
+ **************/
 void leela_on_read(uv_stream_t *client,ssize_t nread,uv_buf_t *buf)
 {
     struct leela_conn *conn = LEELA_FIND_CONN(client);
-    if (nread == UV_EOF)
-    {
-        leela_conn_close(conn->server,conn);
-    }
-    else if (nread > 0)
+    if (nread > 0)
     {
         fprintf(stderr,"conn %d read %ld bytes\n",conn->conn_id,nread);
         g_free(buf->base);
     }
 }
 
+/**************
+ * connection
+ **************/
 void leela_on_conn(uv_stream_t *door,int status)
 {
     if (status == -1)
@@ -140,7 +179,7 @@ void leela_on_conn(uv_stream_t *door,int status)
     struct leela_conn *conn = leela_conn_new(server);
     if (conn == NULL)
     {
-        uv_stop(door,NULL);
+        uv_close(door,NULL);
     }
 
     //accept
