@@ -21,6 +21,11 @@ struct leela_conn *leela_conn_new(struct leela_sock_server *server)
     struct leela_conn *conn = g_malloc0(sizeof(*conn));
 
     g_mutex_lock(&server->mutex);
+    if (server->close)
+    {
+        g_mutex_unlock(&server->mutex);
+        return NULL;
+    }
 
     conn->conn_id = server->max_id + LEELA_ID_STEP;
     g_hash_table_insert(server->all_conn,&conn->conn_id,conn);
@@ -70,6 +75,8 @@ struct leela_sock_server * leela_server_new(int pub_port,int pri_port)
 
     server->door.data = leela_caddr_new(server);
     server->bkdoor.data = leela_caddr_new(server);
+
+    server->close = 0;
 
     int ret;
     // public addr
@@ -131,6 +138,10 @@ void leela_on_conn(uv_stream_t *door,int status)
 
     //init conn
     struct leela_conn *conn = leela_conn_new(server);
+    if (conn == NULL)
+    {
+        uv_stop(door,NULL);
+    }
 
     //accept
     if (uv_accept(door,(struct uv_stream_t *)&conn->guest) == 0)
@@ -175,6 +186,7 @@ void leela_server_close(struct leela_sock_server *server)
 {
     g_mutex_lock(&server->mutex);
 
+    server->close = 1;
     g_hash_table_foreach_remove(server->all_conn,leela_conn_allclose,server);
     server->num = 0;
     g_free(server->all_conn);

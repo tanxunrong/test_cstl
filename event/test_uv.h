@@ -51,6 +51,7 @@ struct leela_sock_server {
 
     uv_loop_t loop; //loop
 
+    uint8_t close;
 };
 
 void leela_on_conn(uv_stream_t *server,int status);
