@@ -29,3 +29,6 @@ target_link_libraries(testuv uv.a pthread glib-2.0)
 
 add_executable(testleveldb leveldb/test.c)
 target_link_libraries(testleveldb leveldb)
+
+add_executable(testrocksdb rocksdb/test.c)
+target_link_libraries(testrocksdb rocksdb)
