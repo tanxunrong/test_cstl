@@ -21,8 +21,8 @@ add_executable(tri_color gc/gc_tri_color.c)
 
 link_directories(/home/tanxr/local/lib)
 
-add_executable(testuv event/test_uv.c event/test_uv.h)
-target_link_libraries(testuv uv.a pthread glib-2.0)
+#add_executable(testuv event/test_uv.c event/test_uv.h)
+#target_link_libraries(testuv uv.a pthread glib-2.0)
 
 #add_executable(testuvclient event/client.c)
 #target_link_libraries(testuvclient uv.a glib-2.0 pthread)
@@ -30,5 +30,5 @@ target_link_libraries(testuv uv.a pthread glib-2.0)
 add_executable(testleveldb leveldb/test.c)
 target_link_libraries(testleveldb leveldb)
 
-add_executable(testrocksdb rocksdb/test.c)
-target_link_libraries(testrocksdb rocksdb)
+#add_executable(testrocksdb rocksdb/test.c)
+#target_link_libraries(testrocksdb rocksdb)
