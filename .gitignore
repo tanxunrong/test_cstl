@@ -25,3 +25,4 @@ proto/pack*
 proto/test_proto
 
 *.dSYM/
+mruby/

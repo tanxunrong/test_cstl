@@ -32,3 +32,12 @@ target_link_libraries(testleveldb leveldb)
 
 #add_executable(testrocksdb rocksdb/test.c)
 #target_link_libraries(testrocksdb rocksdb)
+
+add_library(mrb STATIC mrb/lib.c)
+add_library(mruby-local STATIC IMPORTED)
+set_target_properties(mruby-local PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/mruby/build/host/lib/libmruby.a)
+target_include_directories(mrb SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/mruby/include)
+target_link_libraries(mrb mruby-local m)
+
+add_executable(mrb_test mrb/main.c)
+target_link_libraries(mrb_test mrb)
