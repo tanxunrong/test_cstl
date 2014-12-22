@@ -41,3 +41,8 @@ target_link_libraries(mrb mruby-local m)
 
 add_executable(mrb_test mrb/main.c)
 target_link_libraries(mrb_test mrb)
+
+aux_source_directory(${PROJECT_SOURCE_DIR}/duktape/src-separate DUKTAPE_SRC)
+add_executable(duk ${DUKTAPE_SRC} duk/main.c)
+target_include_directories(duk SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/duktape/src)
+target_link_libraries(duk m)
